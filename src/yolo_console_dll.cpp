@@ -23,6 +23,7 @@
 #include "yolo_v2_class.hpp"    // imported functions from DLL
 
 #include "http_stream.h"
+#include "utils.h"
 
 #ifdef OPENCV
 #ifdef ZED_STEREO
@@ -286,7 +287,9 @@ int main(int argc, char *argv[])
     }
     else if (argc > 1) filename = argv[1];
 
-    float const thresh = (argc > 5) ? std::stof(argv[5]) : 0.2;
+    int mjpeg_port = find_int_arg(argc, argv, "-mjpeg_port", 8090);
+    int json_port = find_int_arg(argc, argv, "-json_port", 8070);
+    float thresh = find_float_arg(argc, argv, "-thresh", .25);
 
     Detector detector(cfg_file, weights_file);
 
@@ -565,7 +568,7 @@ int main(int argc, char *argv[])
                         //small_preview.draw(draw_frame, true);
                         int timeout = 400000;
                         int jpeg_quality = 40;    // 1 - 100
-                        send_mjpeg((mat_cv*)&cap_frame, 8090, timeout, jpeg_quality);
+                        send_mjpeg((mat_cv*)&cap_frame, mjpeg_port, timeout, jpeg_quality);
 
                         detection_data.result_vec = result_vec;
                         detection_data.draw_frame = draw_frame;
@@ -602,7 +605,7 @@ int main(int argc, char *argv[])
                         do {
                             detection_data = draw2net.receive();
 
-                            detector.send_json_http(detection_data.result_vec, obj_names, detection_data.frame_id, filename, frame_size.width, frame_size.height);
+                            detector.send_json_http(detection_data.result_vec, obj_names, detection_data.frame_id, filename, frame_size.width, frame_size.height, 400000, json_port);
 
                         } while (!detection_data.exit_flag);
                     }
