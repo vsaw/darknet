@@ -620,7 +620,7 @@ extern "C" mat_cv* get_capture_frame_cv(cap_cv *cap) {
         else cerr << " cv::VideoCapture isn't created \n";
     }
     catch (...) {
-        std::cout << " OpenCV exception: Video-stream stoped! \n";
+        //std::cout << " OpenCV exception: Video-stream stoped! \n";
     }
     return (mat_cv *)mat;
 }
