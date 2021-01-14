@@ -24,7 +24,7 @@ jobs:
       # In case we run a pull request, the secrets are not available to us. Therefore check first
       # and assign a 'dummy' dockerhub username
       DOCKERHUB_USERNAME: ${{ ( secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_USERNAME ) || 'dummy' }}
-      DOCKERHUB_TAG_SUFFIX: ${{ ( github.event.ref == 'refs/heads/development' && '-development' ) || ( github.event.ref == 'refs/heads/master' && '' ) || '-dummy' }}
+      DOCKERHUB_TAG_SUFFIX: ${{ ( github.event.ref == 'refs/heads/development' && format('{0}-{1}', matrix.platform, 'development') ) || ( github.event.ref == 'refs/heads/master' && matrix.platform ) || '-dummy' }}
     strategy:
       matrix:
         include:
@@ -56,4 +56,4 @@ jobs:
           file: docker/build/${{ matrix.platform }}/Dockerfile
           platforms: ${{ matrix.docker-platform }}
           push: ${{ env.DOCKERHUB_PUBLISH == 'true' }}
-          tags: ${{ env.DOCKERHUB_USERNAME }}/opendatacam-darknet-base:${{ matrix.platform }}${{ DOCKERHUB_TAG_SUFFIX }}
+          tags: ${{ env.DOCKERHUB_USERNAME }}/opendatacam-darknet-base:${{ env.DOCKERHUB_TAG_SUFFIX }}
