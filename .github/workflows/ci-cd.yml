@@ -12,14 +12,11 @@ on:
 
 jobs:
   # Build docker images
-  #
-  # TODO: Publish docker images to dockerhub on changes in the development branch.
-  # We won't push major releases. But development previews are fine.
   build-docker-and-publish:
     runs-on: ubuntu-latest
     # needs: build-and-test-code
     env:
-      # Only publish to Docker Hub if we have a change in the development branch
+      # Publish to Docker Hub if we have a change in the development or master branch
       DOCKERHUB_PUBLISH: ${{ github.event_name == 'push' && (github.event.ref == 'refs/heads/development' || github.event.ref == 'refs/heads/master') && secrets.DOCKERHUB_USERNAME != '' }}
       # In case we run a pull request, the secrets are not available to us. Therefore check first
       # and assign a 'dummy' dockerhub username
