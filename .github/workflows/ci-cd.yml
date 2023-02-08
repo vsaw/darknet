@@ -35,6 +35,8 @@ jobs:
           docker-platform: linux/arm64
         - platform: nano
           docker-platform: linux/arm64
+        - platform: cpu-amd64
+          docker-platform: linux/amd64
     steps:
       - name: Checkout
         uses: actions/checkout@v2
