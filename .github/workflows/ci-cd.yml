@@ -9,22 +9,23 @@ on:
   pull_request:
     branches-ignore:
       - 'gh-pages'
+  release:
+    types: [created]
 
 jobs:
   # Build docker images
-  #
-  # TODO: Publish docker images to dockerhub on changes in the development branch.
-  # We won't push major releases. But development previews are fine.
   build-docker-and-publish:
     runs-on: ubuntu-latest
     # needs: build-and-test-code
     env:
-      # Only publish to Docker Hub if we have a change in the development branch
-      DOCKERHUB_PUBLISH: ${{ github.event_name == 'push' && (github.event.ref == 'refs/heads/development' || github.event.ref == 'refs/heads/master') && secrets.DOCKERHUB_USERNAME != '' }}
+      # Only publish to Docker Hub if the dockerhub username is set, and either happens
+      #
+      # - we have a change in the development branch
+      # - we have a new tag
+      DOCKERHUB_PUBLISH: ${{ (github.event_name == 'push' && (github.event.ref == 'refs/heads/development' || startsWith(github.event.ref, 'refs/tags/')) || github.event_name == 'release') && secrets.DOCKERHUB_USERNAME != '' }}
       # In case we run a pull request, the secrets are not available to us. Therefore check first
       # and assign a 'dummy' dockerhub username
       DOCKERHUB_USERNAME: ${{ ( secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_USERNAME ) || 'dummy' }}
-      DOCKERHUB_TAG_SUFFIX: ${{ ( github.event.ref == 'refs/heads/development' && format('{0}-{1}', matrix.platform, 'development') ) || ( github.event.ref == 'refs/heads/master' && matrix.platform ) || format('{0}-{1}', matrix.platform, 'dummy') }}
     strategy:
       matrix:
         include:
@@ -34,6 +35,8 @@ jobs:
           docker-platform: linux/arm64
         - platform: nano
           docker-platform: linux/arm64
+        - platform: cpu-amd64
+          docker-platform: linux/amd64
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -49,6 +52,17 @@ jobs:
           # Use the secrets directly and not the validated environment DOCKERHUB_USERNAME
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Determine dockerhub tag
+        id: dockerhub-tag
+        # Determine the dockerhub tag based on if our current working tree points to a tag or not
+        # the tags will either be `<tag>-<platform>` or `development-<platform>`
+        run: |
+          GIT_TAG=$(git tag -l --points-at $(git log -n 1 --format=%H))
+          if [ ! -z $GIT_TAG ]; then
+            echo "::set-output name=dockerhub-tag::$GIT_TAG-${{ matrix.platform }}"
+          else
+            echo "::set-output name=dockerhub-tag::development-${{ matrix.platform }}"
+          fi
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
@@ -56,4 +70,4 @@ jobs:
           file: docker/build/${{ matrix.platform }}/Dockerfile
           platforms: ${{ matrix.docker-platform }}
           push: ${{ env.DOCKERHUB_PUBLISH == 'true' }}
-          tags: ${{ env.DOCKERHUB_USERNAME }}/opendatacam-darknet-base:${{ env.DOCKERHUB_TAG_SUFFIX }}
+          tags: ${{ env.DOCKERHUB_USERNAME }}/opendatacam-darknet-base:${{ steps.dockerhub-tag.outputs.dockerhub-tag }}

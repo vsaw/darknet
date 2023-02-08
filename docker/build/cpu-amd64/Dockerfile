@@ -1,4 +1,4 @@
-FROM resinplayground/jetson-nano-cuda-cudnn-opencv:v0.2-slim
+FROM opendatacam/base-desktop-nvidia-cuda-opencv-gstreamer:1.0
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -18,7 +18,8 @@ RUN git clone --depth 1 -b odc https://github.com/opendatacam/darknet /var/local
 
 WORKDIR /var/local/darknet
 
-# COPY Makefile
-COPY docker/build/xavier/Makefile Makefile
+RUN sed -i -e s/AVX=0/AVX=1/ Makefile;
+RUN sed -i -e s/OPENMP=0/OPENMP=1/ Makefile;
+RUN sed -i -e s/OPENCV=0/OPENCV=1/ Makefile;
 
 RUN make
