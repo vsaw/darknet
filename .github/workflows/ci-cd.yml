@@ -59,9 +59,9 @@ jobs:
         run: |
           GIT_TAG=$(git tag -l --points-at $(git log -n 1 --format=%H))
           if [ ! -z $GIT_TAG ]; then
-            echo "::set-output name=dockerhub-tag::$GIT_TAG-${{ matrix.platform }}"
+            echo "dockerhub-tag=$GIT_TAG-${{ matrix.platform }}"  >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=dockerhub-tag::development-${{ matrix.platform }}"
+            echo "dockerhub-tag=development-${{ matrix.platform }}"  >> $GITHUB_OUTPUT
           fi
       - name: Build and push
         uses: docker/build-push-action@v2
