@@ -43,8 +43,6 @@ RUN apt-get update \
       && apt-get install --no-install-recommends --no-install-suggests -y gnupg2 ca-certificates \
             git build-essential libopencv-dev wget \
       && rm -rf /var/lib/apt/lists/*
-RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
-    apt-get install -y nodejs
 
 # Build Darknet
 RUN git clone --depth 1 -b odc https://github.com/opendatacam/darknet /var/local/darknet
@@ -90,5 +88,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update \
       && apt-get install --no-install-recommends --no-install-suggests -y libopencv-highgui4.2 \
       && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update \
+    && curl -sL https://deb.nodesource.com/setup_12.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 COPY --from=builder /var/local/darknet /var/local/darknet
