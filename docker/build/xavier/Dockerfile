@@ -50,7 +50,7 @@ RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
 RUN git clone --depth 1 -b odc https://github.com/opendatacam/darknet /var/local/darknet
 WORKDIR /var/local/darknet
 COPY docker/build/xavier/Makefile Makefile
-RUN make
+RUN make -j
 
 # --------------------------------------------------------------------------------------------------
 
