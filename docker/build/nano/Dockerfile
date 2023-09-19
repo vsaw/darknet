@@ -1,24 +1,87 @@
-FROM resinplayground/jetson-nano-cuda-cudnn-opencv:v0.2-slim
+FROM nvcr.io/nvidia/l4t-base:35.4.1 AS builder
+
+LABEL maintainer="OpenDataCam <info@opendata.cam>"
 
 ENV DEBIAN_FRONTEND noninteractive
 
-# Update NVIDIA Signing key
-# See also https://forums.developer.nvidia.com/t/gpg-error-http-developer-download-nvidia-com-compute-cuda-repos-ubuntu1804-x86-64/212904/3
-RUN apt-key del 7fa2af80 && \
-    apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/3bf863cc.pub
+# Install any utils needed for execution
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    sudo \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install nvidia-cuda-dev for CUDA developer packages
+# Use nvidia-cuda if need CUDA runtime only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nvidia-cuda-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install nvidia-cudnn8-dev for CuDNN developer packages
+# Use nvidia-cudnn8 if need CuDNN runtime only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nvidia-cudnn8-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install nvidia-opencv-dev for OpenCV developer packages
+# Use nvidia-opencv if need OpenCV runtime only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nvidia-opencv-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Install commonly used dependencies
-RUN apt-get update && \
-    apt-get install -y jq wget
+RUN apt-get update \
+      && apt-get install --no-install-recommends --no-install-suggests -y gnupg2 ca-certificates \
+            git build-essential libopencv-dev wget \
+      && rm -rf /var/lib/apt/lists/*
 RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
     apt-get install -y nodejs
 
-# Start Darknet Install
+# Build Darknet
 RUN git clone --depth 1 -b odc https://github.com/opendatacam/darknet /var/local/darknet
-
 WORKDIR /var/local/darknet
-
-# COPY Makefile
 COPY docker/build/nano/Makefile Makefile
-
 RUN make
+
+# --------------------------------------------------------------------------------------------------
+
+FROM nvcr.io/nvidia/l4t-base:35.4.1
+
+LABEL maintainer="OpenDataCam <info@opendata.cam>"
+
+ENV DEBIAN_FRONTEND noninteractive
+
+# Install any utils needed for execution
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    sudo \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install nvidia-cuda-dev for CUDA developer packages
+# Use nvidia-cuda if need CUDA runtime only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nvidia-cuda \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install nvidia-cudnn8-dev for CuDNN developer packages
+# Use nvidia-cudnn8 if need CuDNN runtime only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nvidia-cudnn8 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install nvidia-opencv-dev for OpenCV developer packages
+# Use nvidia-opencv if need OpenCV runtime only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nvidia-opencv \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+RUN apt-get update \
+      && apt-get install --no-install-recommends --no-install-suggests -y libopencv-highgui4.2 \
+      && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /var/local/darknet /var/local/darknet

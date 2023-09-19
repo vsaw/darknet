@@ -61,7 +61,7 @@ CC=gcc
 endif
 
 CPP=g++ -std=c++11
-NVCC=/usr/local/cuda-10.0/bin/nvcc
+NVCC=/usr/local/cuda/bin/nvcc
 OPTS=-Ofast
 LDFLAGS= -lm -pthread
 COMMON= -Iinclude/ -I3rdparty/stb/include
@@ -97,23 +97,23 @@ LDFLAGS+= -lgomp
 endif
 
 ifeq ($(GPU), 1)
-COMMON+= -DGPU -I/usr/local/cuda-10.0/include/
+COMMON+= -DGPU -I/usr/local/cuda/include/
 CFLAGS+= -DGPU
 ifeq ($(OS),Darwin) #MAC
-LDFLAGS+= -L/usr/local/cuda-10.0/lib -lcuda -lcudart -lcublas -lcurand
+LDFLAGS+= -L/usr/local/cuda/lib -lcuda -lcudart -lcublas -lcurand
 else
-LDFLAGS+= -L/usr/local/cuda-10.0/lib64 -lcuda -lcudart -lcublas -lcurand
+LDFLAGS+= -L/usr/local/cuda/lib64 -L/usr/local/cuda-11.4/targets/aarch64-linux/lib/stubs -lcuda -lcudart -lcublas -lcurand
 endif
 endif
 
 ifeq ($(CUDNN), 1)
 COMMON+= -DCUDNN
 ifeq ($(OS),Darwin) #MAC
-CFLAGS+= -DCUDNN -I/usr/local/cuda-10.0/include
-LDFLAGS+= -L/usr/local/cuda-10.0/lib -lcudnn
+CFLAGS+= -DCUDNN -I/usr/local/cuda/include
+LDFLAGS+= -L/usr/local/cuda/lib -lcudnn
 else
-CFLAGS+= -DCUDNN -I/usr/local/cuda-10.0/include
-LDFLAGS+= -L/usr/local/cuda-10.0/lib64 -lcudnn
+CFLAGS+= -DCUDNN -I/usr/local/cuda/include
+LDFLAGS+= -L/usr/local/cuda/lib64 -lcudnn
 endif
 endif
 
