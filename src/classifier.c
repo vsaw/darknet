@@ -32,6 +32,7 @@ void train_classifier(char *datacfg, char *cfgfile, char *weightfile, int *gpus,
     int i;
 
     float avg_loss = -1;
+    float avg_contrastive_acc = 0;
     char *base = basecfg(cfgfile);
     printf("%s\n", base);
     printf("%d\n", ngpus);
@@ -207,9 +208,17 @@ void train_classifier(char *datacfg, char *cfgfile, char *weightfile, int *gpus,
         if (avg_time < 0) avg_time = time_remaining;
         else avg_time = alpha_time * time_remaining + (1 -  alpha_time) * avg_time;
         start = what_time_is_it_now();
-        printf("%d, %.3f: %f, %f avg, %f rate, %lf seconds, %ld images, %f hours left\n", get_current_batch(net), (float)(*net.seen)/ train_images_num, loss, avg_loss, get_current_rate(net), sec(clock()-time), *net.seen, avg_time);
+        printf("%d, %.3f: %f, %f avg, %f rate, %lf seconds, %" PRIu64 " images, %f hours left\n", get_current_batch(net), (float)(*net.seen)/ train_images_num, loss, avg_loss, get_current_rate(net), sec(clock()-time), *net.seen, avg_time);
 #ifdef OPENCV
-        if (!dontuse_opencv) draw_train_loss(windows_name, img, img_size, avg_loss, max_img_loss, i, net.max_batches, topk, draw_precision, topk_buff, dont_show, mjpeg_port, avg_time);
+        if (net.contrastive) {
+            float cur_con_acc = -1;
+            int k;
+            for (k = 0; k < net.n; ++k)
+                if (net.layers[k].type == CONTRASTIVE) cur_con_acc = *net.layers[k].loss;
+            if (cur_con_acc >= 0) avg_contrastive_acc = avg_contrastive_acc*0.99 + cur_con_acc * 0.01;
+            printf("  avg_contrastive_acc = %f \n", avg_contrastive_acc);
+        }
+        if (!dontuse_opencv) draw_train_loss(windows_name, img, img_size, avg_loss, max_img_loss, i, net.max_batches, topk, draw_precision, topk_buff, avg_contrastive_acc / 100, dont_show, mjpeg_port, avg_time);
 #endif  // OPENCV
 
         if (i >= (iter_save + 1000)) {
@@ -860,12 +869,10 @@ void predict_classifier(char *datacfg, char *cfgfile, char *weightfile, char *fi
         }
         image im = load_image_color(input, 0, 0);
         image resized = resize_min(im, net.w);
-        image r = crop_image(resized, (resized.w - net.w)/2, (resized.h - net.h)/2, net.w, net.h);
-        //image r = resize_min(im, size);
-        //resize_network(&net, r.w, r.h);
-        printf("%d %d\n", r.w, r.h);
+        image cropped = crop_image(resized, (resized.w - net.w)/2, (resized.h - net.h)/2, net.w, net.h);
+        printf("%d %d\n", cropped.w, cropped.h);
 
-        float *X = r.data;
+        float *X = cropped.data;
 
         double time = get_time_point();
         float *predictions = network_predict(net, X);
@@ -879,9 +886,13 @@ void predict_classifier(char *datacfg, char *cfgfile, char *weightfile, char *fi
             if(net.hierarchy) printf("%d, %s: %f, parent: %s \n",index, names[index], predictions[index], (net.hierarchy->parent[index] >= 0) ? names[net.hierarchy->parent[index]] : "Root");
             else printf("%s: %f\n",names[index], predictions[index]);
         }
-        if(r.data != im.data) free_image(r);
+
+        free_image(cropped);
+        if (resized.data != im.data) {
+            free_image(resized);
+        }
         free_image(im);
-        free_image(resized);
+
         if (filename) break;
     }
     free(indexes);
@@ -1040,7 +1051,7 @@ void threat_classifier(char *datacfg, char *cfgfile, char *weightfile, int cam_i
 
     int* indexes = (int*)xcalloc(top, sizeof(int));
 
-    if(!cap) error("Couldn't connect to webcam.\n");
+    if(!cap) error("Couldn't connect to webcam.", DARKNET_LOC);
     create_window_cv("Threat", 0, 512, 512);
     float fps = 0;
     int i;
@@ -1118,11 +1129,8 @@ void threat_classifier(char *datacfg, char *cfgfile, char *weightfile, int cam_i
         sprintf(buff, "tmp/threat_%06d", count);
         //save_image(out, buff);
 
-#ifndef _WIN32
-        printf("\033[2J");
-        printf("\033[1;1H");
-#endif
-        printf("\nFPS:%.0f\n",fps);
+        printf("\033[H\033[J");
+        printf("\nFPS:%.0f\n", fps);
 
         for(i = 0; i < top; ++i){
             int index = indexes[i];
@@ -1179,7 +1187,7 @@ void gun_classifier(char *datacfg, char *cfgfile, char *weightfile, int cam_inde
 
     int* indexes = (int*)xcalloc(top, sizeof(int));
 
-    if(!cap) error("Couldn't connect to webcam.\n");
+    if(!cap) error("Couldn't connect to webcam.", DARKNET_LOC);
     cvNamedWindow("Threat Detection", CV_WINDOW_NORMAL);
     cvResizeWindow("Threat Detection", 512, 512);
     float fps = 0;
@@ -1197,8 +1205,7 @@ void gun_classifier(char *datacfg, char *cfgfile, char *weightfile, int cam_inde
         float *predictions = network_predict(net, in_s.data);
         top_predictions(net, top, indexes);
 
-        printf("\033[2J");
-        printf("\033[1;1H");
+        printf("\033[H\033[J");
 
         int threat = 0;
         for(i = 0; i < sizeof(bad_cats)/sizeof(bad_cats[0]); ++i){
@@ -1263,7 +1270,7 @@ void demo_classifier(char *datacfg, char *cfgfile, char *weightfile, int cam_ind
 
     int* indexes = (int*)xcalloc(top, sizeof(int));
 
-    if(!cap) error("Couldn't connect to webcam.\n");
+    if(!cap) error("Couldn't connect to webcam.", DARKNET_LOC);
     if (!benchmark) create_window_cv("Classifier", 0, 512, 512);
     float fps = 0;
     int i;
@@ -1297,11 +1304,7 @@ void demo_classifier(char *datacfg, char *cfgfile, char *weightfile, int cam_ind
         if(net.hierarchy) hierarchy_predictions(predictions, net.outputs, net.hierarchy, 1);
         top_predictions(net, top, indexes);
 
-#ifndef _WIN32
-        printf("\033[2J");
-        printf("\033[1;1H");
-#endif
-
+        printf("\033[H\033[J");
 
         if (!benchmark) {
             printf("\rFPS: %.2f  (use -benchmark command line flag for correct measurement)\n", fps);
