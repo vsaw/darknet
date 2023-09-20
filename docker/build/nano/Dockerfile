@@ -41,11 +41,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install commonly used dependencies
 RUN apt-get update \
       && apt-get install --no-install-recommends --no-install-suggests -y gnupg2 ca-certificates \
-            git build-essential libopencv-dev wget \
+            git build-essential libopencv-dev wget pkg-config \
       && rm -rf /var/lib/apt/lists/*
 
 # Build Darknet
-RUN git clone --depth 1 -b odc https://github.com/opendatacam/darknet /var/local/darknet
+RUN git clone --depth 1 https://github.com/opendatacam/darknet /var/local/darknet
 WORKDIR /var/local/darknet
 COPY docker/build/nano/Makefile Makefile
 RUN make -j
@@ -87,11 +87,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN apt-get update \
       && apt-get install --no-install-recommends --no-install-suggests -y libopencv-highgui4.2 \
-      && rm -rf /var/lib/apt/lists/*
+      && rm -rf /var/lib/apt/lists/* \
+      && apt-get clean
 
 RUN apt-get update \
+    && apt-get install --no-install-recommends --no-install-suggests -y curl \
     && curl -sL https://deb.nodesource.com/setup_12.x | bash - \
-    && apt-get install -y nodejs \
+    && apt-get install --no-install-recommends --no-install-suggests -y nodejs \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
