@@ -9,8 +9,11 @@ on:
         description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
-  schedule:
-    - cron: '0 0 * * *'
+# Disable scheduled runs.
+# There is not enough change in the repo to justify a nightly build
+# Also it fails. See https://github.com/opendatacam/darknet/actions/runs/6358752191/job/17271328562
+#  schedule:
+#    - cron: '0 0 * * *'
 
 env:
   VCPKG_BINARY_SOURCES: 'clear;nuget,vcpkgbinarycache,readwrite'
@@ -156,6 +159,8 @@ jobs:
 
 
   ubuntu-vcpkg-opencv3-cuda:
+    # Skip failing build
+    if: False
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
@@ -207,6 +212,8 @@ jobs:
 
 
   ubuntu-vcpkg-opencv2-cuda:
+    # Skip failing build
+    if: False
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
