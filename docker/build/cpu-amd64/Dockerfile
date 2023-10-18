@@ -14,12 +14,9 @@ RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
     apt-get install -y nodejs
 
 # Start Darknet Install
-RUN git clone --depth 1 -b odc https://github.com/opendatacam/darknet /var/local/darknet
-
+RUN git clone --depth 1 https://github.com/opendatacam/darknet /var/local/darknet
 WORKDIR /var/local/darknet
-
 RUN sed -i -e s/AVX=0/AVX=1/ Makefile;
 RUN sed -i -e s/OPENMP=0/OPENMP=1/ Makefile;
 RUN sed -i -e s/OPENCV=0/OPENCV=1/ Makefile;
-
-RUN make
+RUN make -j
