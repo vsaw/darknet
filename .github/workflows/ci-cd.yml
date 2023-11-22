@@ -70,4 +70,4 @@ jobs:
           file: docker/build/${{ matrix.platform }}/Dockerfile
           platforms: ${{ matrix.docker-platform }}
           push: ${{ env.DOCKERHUB_PUBLISH == 'true' }}
-          tags: ${{ env.DOCKERHUB_USERNAME }}/opendatacam-darknet-base:${{ steps.dockerhub-tag.outputs.dockerhub-tag }}
+          tags: ${{ env.DOCKERHUB_USERNAME }}/darknet:${{ steps.dockerhub-tag.outputs.dockerhub-tag }}
